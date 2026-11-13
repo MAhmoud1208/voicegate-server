@@ -42,11 +42,12 @@ function loadPrivateKey() {
   console.error('No signing key. Run `node genkeys.js` or set VG_PRIVATE_KEY.');
   process.exit(1);
 }
-var PRIVATE_KEY = loadPrivateKey();
+var _pk = null;
+function privateKey() { if (!_pk) _pk = loadPrivateKey(); return _pk; }
 
 function sign(payloadObj) {
   var payload = JSON.stringify(payloadObj);
-  return { payload: payload, sig: crypto.sign(null, Buffer.from(payload), PRIVATE_KEY).toString('base64') };
+  return { payload: payload, sig: crypto.sign(null, Buffer.from(payload), privateKey()).toString('base64') };
 }
 
 /* ---------- key generation (for admin endpoint) ---------- */
@@ -157,7 +158,7 @@ function readBody(req, cb) {
   req.on('error', cb);
 }
 
-var server = http.createServer(function (req, res) {
+function handler(req, res) {
   if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
   if (req.method === 'GET' && (req.url === '/admin' || req.url === '/admin.html')) {
     try {
@@ -186,8 +187,14 @@ var server = http.createServer(function (req, res) {
     if (req.url === '/api/update') return handleUpdate(body, function (r) { send(res, 200, r); });
     send(res, 404, { ok: false, error: 'NOT_FOUND' });
   });
-});
+}
 
-server.listen(PORT, function () {
-  console.log('Voice Gate server on port ' + PORT + ' | store=' + store.backend + ' | re-check every ' + CHECK_DAYS + ' days');
-});
+// Vercel / serverless: export the request handler.
+module.exports = handler;
+
+// Local / any Node host (Render, Koyeb, a PC): start a real server.
+if (require.main === module) {
+  http.createServer(handler).listen(PORT, function () {
+    console.log('Voice Gate server on port ' + PORT + ' | store=' + store.backend + ' | re-check every ' + CHECK_DAYS + ' days');
+  });
+}
