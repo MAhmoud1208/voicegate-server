@@ -1,0 +1,5 @@
+node_modules/
+data/private.pem
+*.log
+data/admin.token
+data/keys.json

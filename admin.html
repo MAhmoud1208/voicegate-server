@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice Gate — لوحة الكيهات</title>
+<style>
+  :root { --bg:#0f1830; --card:#17223f; --line:#2b3a63; --ink:#eaf0ff; --mut:#9fb0d8; --blue:#2f6bff; --ok:#39d98a; --bad:#ff7a8a; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,"Segoe UI",Tahoma,sans-serif; background:var(--bg); color:var(--ink); padding:16px; }
+  .wrap { max-width:720px; margin:0 auto; }
+  h1 { font-size:20px; margin:8px 0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  label { display:block; font-size:13px; color:var(--mut); margin:10px 0 4px; }
+  input, select { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:#0d1528; color:var(--ink); font-size:14px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:120px; }
+  button { margin-top:12px; padding:11px 16px; border:0; border-radius:10px; background:var(--blue); color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+  button.ghost { background:#24304f; }
+  pre { white-space:pre-wrap; word-break:break-all; background:#0d1528; border:1px solid var(--line); border-radius:10px; padding:12px; font-size:13px; min-height:40px; }
+  .k { color:var(--ok); font-weight:700; }
+  .muted { color:var(--mut); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Voice Gate — لوحة الكيهات</h1>
+
+  <div class="card">
+    <label>رابط السيرفر (SERVER_URL)</label>
+    <input id="url" placeholder="https://voicegate.onrender.com">
+    <label>كلمة سر الأدمن (VG_ADMIN_TOKEN)</label>
+    <input id="tok" type="password" placeholder="اللي حطيته في الاستضافة">
+    <p class="muted">بيتحفظوا في المتصفح ده بس. مش بيتبعتوا لأي حد غير سيرفرك.</p>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>النوع</label>
+        <select id="plan">
+          <option value="lifetime">مدى الحياة</option>
+          <option value="30">30 يوم</option>
+          <option value="90">90 يوم</option>
+          <option value="180">180 يوم</option>
+          <option value="365">سنة</option>
+        </select>
+      </div>
+      <div>
+        <label>العدد</label>
+        <input id="count" type="number" value="1" min="1" max="100">
+      </div>
+      <div>
+        <label>اسم العميل (اختياري)</label>
+        <input id="note" placeholder="أحمد">
+      </div>
+    </div>
+    <button onclick="mk()">اعمل كيهات</button>
+    <button class="ghost" onclick="list()">عرض كل الكيهات</button>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>كي لسحبه أو فكّه</label>
+        <input id="k" placeholder="VG-XXXX-XXXX-XXXX">
+      </div>
+    </div>
+    <button class="ghost" onclick="act('revoke')">اسحب الكي</button>
+    <button class="ghost" onclick="act('unbind')">فكّه من الجهاز</button>
+  </div>
+
+  <pre id="out">—</pre>
+</div>
+
+<script>
+  var $ = function (id) { return document.getElementById(id); };
+  try { $('url').value = localStorage.vg_url || ''; $('tok').value = localStorage.vg_tok || ''; } catch (e) {}
+  function base() { try { localStorage.vg_url = $('url').value; localStorage.vg_tok = $('tok').value; } catch (e) {} return $('url').value.replace(/\/+$/, ''); }
+  function hdr() { return { 'Content-Type': 'application/json', 'x-admin-token': $('tok').value }; }
+  function show(x) { $('out').textContent = (typeof x === 'string') ? x : JSON.stringify(x, null, 2); }
+
+  function mk() {
+    show('ثواني...');
+    fetch(base() + '/api/admin/newkey', { method: 'POST', headers: hdr(), body: JSON.stringify({ plan: $('plan').value, count: parseInt($('count').value, 10) || 1, note: $('note').value }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (!j.ok) return show(j); show('الكيهات الجديدة:\n\n' + j.keys.map(function (k) { return k; }).join('\n')); })
+      .catch(function (e) { show('خطأ: ' + e.message + '\nاتأكد من الرابط وكلمة السر.'); });
+  }
+  function list() {
+    show('ثواني...');
+    fetch(base() + '/api/admin/list', { headers: hdr() })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) return show(j);
+        var ks = Object.keys(j.keys);
+        if (!ks.length) return show('مفيش كيهات لسه.');
+        show(ks.map(function (k) {
+          var r = j.keys[k], plan = r.plan === 'lifetime' ? 'مدى الحياة' : r.plan + ' يوم';
+          var st = r.revoked ? 'مسحوب' : (r.deviceId ? 'مفعّل' : 'جديد');
+          return k + '  —  ' + plan + '  —  ' + st + (r.note ? '  (' + r.note + ')' : '');
+        }).join('\n'));
+      })
+      .catch(function (e) { show('خطأ: ' + e.message); });
+  }
+  function act(which) {
+    var k = $('k').value.trim(); if (!k) return show('اكتب الكي الأول.');
+    show('ثواني...');
+    fetch(base() + '/api/admin/' + which, { method: 'POST', headers: hdr(), body: JSON.stringify({ key: k }) })
+      .then(function (r) { return r.json(); })
+      .then(show)
+      .catch(function (e) { show('خطأ: ' + e.message); });
+  }
+</script>
+</body>
+</html>

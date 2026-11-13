@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: voicegate
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: VG_PRIVATE_KEY
+        sync: false          # paste the base64 private key in the Render dashboard
+      - key: VG_CHECK_DAYS
+        value: "14"
