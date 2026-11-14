@@ -3,41 +3,136 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Voice Gate — لوحة الكيهات</title>
+<title>Voice Gate — لوحة التحكم</title>
 <style>
-  :root { --bg:#0f1830; --card:#17223f; --line:#2b3a63; --ink:#eaf0ff; --mut:#9fb0d8; --blue:#2f6bff; --ok:#39d98a; --bad:#ff7a8a; }
-  * { box-sizing:border-box; }
-  body { margin:0; font-family:system-ui,"Segoe UI",Tahoma,sans-serif; background:var(--bg); color:var(--ink); padding:16px; }
-  .wrap { max-width:720px; margin:0 auto; }
-  h1 { font-size:20px; margin:8px 0 16px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
-  label { display:block; font-size:13px; color:var(--mut); margin:10px 0 4px; }
-  input, select { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:#0d1528; color:var(--ink); font-size:14px; }
-  .row { display:flex; gap:10px; flex-wrap:wrap; }
-  .row > div { flex:1; min-width:120px; }
-  button { margin-top:12px; padding:11px 16px; border:0; border-radius:10px; background:var(--blue); color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
-  button.ghost { background:#24304f; }
-  pre { white-space:pre-wrap; word-break:break-all; background:#0d1528; border:1px solid var(--line); border-radius:10px; padding:12px; font-size:13px; min-height:40px; }
-  .k { color:var(--ok); font-weight:700; }
-  .muted { color:var(--mut); font-size:12px; }
+  :root{
+    --bg:#0b1226; --bg2:#0e1733; --card:#15203f; --card2:#1a2850; --line:#263357;
+    --ink:#eef2ff; --mut:#9fb0d8; --mut2:#6f80ab;
+    --blue:#2f6bff; --green:#2fd38a; --amber:#f5b73d; --red:#ff6b7f; --cyan:#35c6e8; --violet:#9b7bff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",Tahoma,system-ui,sans-serif;background:
+    radial-gradient(1200px 500px at 85% -10%, #16224a 0%, transparent 60%),
+    var(--bg);color:var(--ink);min-height:100vh}
+  a{color:inherit}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 18px 60px}
+
+  /* top bar */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--blue),var(--violet));
+    display:grid;place-items:center;font-size:20px;box-shadow:0 6px 20px rgba(47,107,255,.35)}
+  .brand h1{font-size:19px;margin:0}
+  .brand small{color:var(--mut);font-size:12px}
+  .status{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+    padding:8px 14px;border-radius:999px;font-size:13px;color:var(--mut)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--mut2)}
+  .dot.on{background:var(--green);box-shadow:0 0 0 4px rgba(47,211,138,.18)}
+  .dot.off{background:var(--red);box-shadow:0 0 0 4px rgba(255,107,127,.18)}
+
+  /* connect card */
+  .connect{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:18px}
+  .connect .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+  .connect .f{flex:1;min-width:220px}
+  label{display:block;font-size:12px;color:var(--mut);margin:0 2px 6px}
+  input,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
+    background:#0c1430;color:var(--ink);font-size:14px;outline:none}
+  input:focus,select:focus{border-color:var(--blue)}
+  .muted{color:var(--mut2);font-size:12px;margin:8px 2px 0}
+
+  button{cursor:pointer;border:0;border-radius:10px;font-weight:700;font-size:14px;padding:11px 16px;
+    background:var(--blue);color:#fff;transition:filter .15s,transform .05s}
+  button:hover{filter:brightness(1.08)} button:active{transform:translateY(1px)}
+  button.ghost{background:#24315a;color:var(--ink)}
+  button.sm{padding:7px 10px;font-size:12px;border-radius:8px}
+  button.danger{background:transparent;border:1px solid rgba(255,107,127,.5);color:var(--red)}
+  button.danger:hover{background:rgba(255,107,127,.12)}
+  button.soft{background:transparent;border:1px solid var(--line);color:var(--mut)}
+  button.soft:hover{background:#1b2b4f}
+
+  /* stat cards */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:18px}
+  .stat{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:16px 16px 20px}
+  .stat .lbl{font-size:12px;color:var(--mut)}
+  .stat .num{font-size:30px;font-weight:800;margin-top:6px}
+  .stat .sub{font-size:11px;color:var(--mut2);margin-top:4px}
+  .stat .ic{position:absolute;top:14px;left:14px;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:16px}
+  .stat .wave{position:absolute;left:0;right:0;bottom:0;height:34px;opacity:.5}
+  .s-green .ic{background:rgba(47,211,138,.16);color:var(--green)} .s-green{box-shadow:inset 0 -3px 0 rgba(47,211,138,.35)}
+  .s-blue  .ic{background:rgba(47,107,255,.16);color:var(--blue)}  .s-blue{box-shadow:inset 0 -3px 0 rgba(47,107,255,.35)}
+  .s-amber .ic{background:rgba(245,183,61,.16);color:var(--amber)} .s-amber{box-shadow:inset 0 -3px 0 rgba(245,183,61,.35)}
+  .s-red   .ic{background:rgba(255,107,127,.16);color:var(--red)}  .s-red{box-shadow:inset 0 -3px 0 rgba(255,107,127,.35)}
+  .s-cyan  .ic{background:rgba(53,198,232,.16);color:var(--cyan)}  .s-cyan{box-shadow:inset 0 -3px 0 rgba(53,198,232,.35)}
+
+  /* panel */
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:18px}
+  .panel h2{font-size:15px;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+  .panel h2 .pin{color:var(--mut)}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .toolbar .grow{flex:1;min-width:200px}
+
+  /* table */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
+  thead th{background:#111a37;color:var(--mut);text-align:right;padding:12px 12px;font-weight:600;white-space:nowrap}
+  tbody td{padding:12px 12px;border-top:1px solid var(--line);vertical-align:middle}
+  tbody tr:hover{background:#121c3b}
+  .keycell{font-family:ui-monospace,Consolas,monospace;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+  .copy{cursor:pointer;color:var(--mut2)}.copy:hover{color:var(--ink)}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
+  .p-active{background:rgba(47,211,138,.15);color:var(--green)}
+  .p-new{background:rgba(53,198,232,.15);color:var(--cyan)}
+  .p-revoked{background:rgba(255,107,127,.15);color:var(--red)}
+  .p-expired{background:rgba(245,183,61,.15);color:var(--amber)}
+  .plan{background:rgba(155,123,255,.15);color:var(--violet);padding:3px 10px;border-radius:999px;font-size:11px}
+  .dev{display:flex;align-items:center;gap:6px;color:var(--mut)}
+  .acts{display:flex;gap:6px;justify-content:flex-start}
+  .empty{padding:34px;text-align:center;color:var(--mut2)}
+
+  /* toast */
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#0c1430;border:1px solid var(--line);
+    color:var(--ink);padding:12px 18px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  #toast.show{opacity:1}
+  #toast.ok{border-color:rgba(47,211,138,.5)} #toast.err{border-color:rgba(255,107,127,.5)}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Voice Gate — لوحة الكيهات</h1>
 
-  <div class="card">
-    <label>رابط السيرفر (SERVER_URL)</label>
-    <input id="url" placeholder="https://voicegate.onrender.com">
-    <label>كلمة سر الأدمن (VG_ADMIN_TOKEN)</label>
-    <input id="tok" type="password" placeholder="اللي حطيته في الاستضافة">
-    <p class="muted">بيتحفظوا في المتصفح ده بس. مش بيتبعتوا لأي حد غير سيرفرك.</p>
+  <div class="top">
+    <div class="brand">
+      <div class="logo">🎙️</div>
+      <div><h1>Voice Gate</h1><small>لوحة تحكّم المالك — إدارة الكيهات والعملاء</small></div>
+    </div>
+    <div class="status"><span id="dot" class="dot"></span><span id="statusTxt">غير متصل</span></div>
   </div>
 
-  <div class="card">
+  <!-- connect -->
+  <div class="connect" id="connectCard">
     <div class="row">
-      <div>
-        <label>النوع</label>
+      <div class="f"><label>رابط السيرفر</label><input id="url" placeholder="https://voicegate-server.vercel.app"></div>
+      <div class="f"><label>كلمة سر الأدمن</label><input id="tok" type="password" placeholder="VG_ADMIN_TOKEN"></div>
+      <div><button onclick="connect()">اتصال</button></div>
+    </div>
+    <p class="muted">بيتحفظوا في المتصفح ده بس، ومابيتبعتوش لأي حد غير سيرفرك.</p>
+  </div>
+
+  <!-- stats -->
+  <div class="cards" id="cards" hidden>
+    <div class="stat s-green"><div class="ic">🔑</div><div class="lbl">المفاتيح النشطة</div><div class="num" id="st-active">0</div><div class="sub">مفعّلة على أجهزة</div></div>
+    <div class="stat s-cyan"><div class="ic">🖥️</div><div class="lbl">الأجهزة المتصلة</div><div class="num" id="st-devices">0</div><div class="sub">جهاز شغّال بكي</div></div>
+    <div class="stat s-blue"><div class="ic">📦</div><div class="lbl">إجمالي الكيهات</div><div class="num" id="st-total">0</div><div class="sub" id="st-unused">0 لسه متفعّلش</div></div>
+    <div class="stat s-amber"><div class="ic">⏳</div><div class="lbl">قربت تخلص</div><div class="num" id="st-soon">0</div><div class="sub">خلال 7 أيام</div></div>
+    <div class="stat s-red"><div class="ic">🚫</div><div class="lbl">المفاتيح المسحوبة</div><div class="num" id="st-revoked">0</div><div class="sub">مقفولة</div></div>
+  </div>
+
+  <!-- create -->
+  <div class="panel" id="createPanel" hidden>
+    <h2><span class="pin">➕</span> إنشاء كيهات جديدة لعميل</h2>
+    <div class="toolbar">
+      <div><label>النوع</label>
         <select id="plan">
           <option value="lifetime">مدى الحياة</option>
           <option value="30">30 يوم</option>
@@ -46,71 +141,183 @@
           <option value="365">سنة</option>
         </select>
       </div>
-      <div>
-        <label>العدد</label>
-        <input id="count" type="number" value="1" min="1" max="100">
-      </div>
-      <div>
-        <label>اسم العميل (اختياري)</label>
-        <input id="note" placeholder="أحمد">
-      </div>
+      <div><label>العدد</label><input id="count" type="number" value="1" min="1" max="100" style="width:90px"></div>
+      <div class="grow"><label>اسم / إيميل العميل</label><input id="note" placeholder="مثلاً: khaled — محل الصوتيات"></div>
+      <div style="align-self:end"><button onclick="makeKeys()">اعمل الكيهات</button></div>
     </div>
-    <button onclick="mk()">اعمل كيهات</button>
-    <button class="ghost" onclick="list()">عرض كل الكيهات</button>
+    <div id="madeBox" class="muted" style="white-space:pre-wrap;word-break:break-all"></div>
   </div>
 
-  <div class="card">
-    <div class="row">
-      <div>
-        <label>كي لسحبه أو فكّه</label>
-        <input id="k" placeholder="VG-XXXX-XXXX-XXXX">
-      </div>
+  <!-- keys -->
+  <div class="panel" id="keysPanel" hidden>
+    <h2><span class="pin">👥</span> مفاتيح العملاء</h2>
+    <div class="toolbar">
+      <input class="grow" id="search" placeholder="ابحث باسم العميل أو المفتاح أو الجهاز..." oninput="render()">
+      <select id="filter" onchange="render()" style="max-width:170px">
+        <option value="all">كل الحالات</option>
+        <option value="active">نشط</option>
+        <option value="new">جديد</option>
+        <option value="revoked">مسحوب</option>
+        <option value="expired">منتهي</option>
+      </select>
+      <button class="ghost sm" onclick="loadKeys()">🔄 تحديث</button>
     </div>
-    <button class="ghost" onclick="act('revoke')">اسحب الكي</button>
-    <button class="ghost" onclick="act('unbind')">فكّه من الجهاز</button>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>اسم العميل</th><th>المفتاح</th><th>النوع</th><th>الأجهزة المتصلة</th>
+          <th>تاريخ التفعيل</th><th>ينتهي في</th><th>الحالة</th><th>إجراءات</th>
+        </tr></thead>
+        <tbody id="rows"><tr><td colspan="9" class="empty">—</td></tr></tbody>
+      </table>
+    </div>
+    <p class="muted">سحب الكي بيقفل العميل عند أول مراجعة أونلاين (كل بضع أيام). «فك الجهاز» بيحرّر الكي لجهاز جديد. كل كي بيشتغل على جهاز واحد.</p>
   </div>
 
-  <pre id="out">—</pre>
 </div>
 
-<script>
-  var $ = function (id) { return document.getElementById(id); };
-  try { $('url').value = localStorage.vg_url || ''; $('tok').value = localStorage.vg_tok || ''; } catch (e) {}
-  function base() { try { localStorage.vg_url = $('url').value; localStorage.vg_tok = $('tok').value; } catch (e) {} return $('url').value.replace(/\/+$/, ''); }
-  function hdr() { return { 'Content-Type': 'application/json', 'x-admin-token': $('tok').value }; }
-  function show(x) { $('out').textContent = (typeof x === 'string') ? x : JSON.stringify(x, null, 2); }
+<div id="toast"></div>
 
-  function mk() {
-    show('ثواني...');
-    fetch(base() + '/api/admin/newkey', { method: 'POST', headers: hdr(), body: JSON.stringify({ plan: $('plan').value, count: parseInt($('count').value, 10) || 1, note: $('note').value }) })
-      .then(function (r) { return r.json(); })
-      .then(function (j) { if (!j.ok) return show(j); show('الكيهات الجديدة:\n\n' + j.keys.map(function (k) { return k; }).join('\n')); })
-      .catch(function (e) { show('خطأ: ' + e.message + '\nاتأكد من الرابط وكلمة السر.'); });
-  }
-  function list() {
-    show('ثواني...');
-    fetch(base() + '/api/admin/list', { headers: hdr() })
-      .then(function (r) { return r.json(); })
-      .then(function (j) {
-        if (!j.ok) return show(j);
-        var ks = Object.keys(j.keys);
-        if (!ks.length) return show('مفيش كيهات لسه.');
-        show(ks.map(function (k) {
-          var r = j.keys[k], plan = r.plan === 'lifetime' ? 'مدى الحياة' : r.plan + ' يوم';
-          var st = r.revoked ? 'مسحوب' : (r.deviceId ? 'مفعّل' : 'جديد');
-          return k + '  —  ' + plan + '  —  ' + st + (r.note ? '  (' + r.note + ')' : '');
-        }).join('\n'));
-      })
-      .catch(function (e) { show('خطأ: ' + e.message); });
-  }
-  function act(which) {
-    var k = $('k').value.trim(); if (!k) return show('اكتب الكي الأول.');
-    show('ثواني...');
-    fetch(base() + '/api/admin/' + which, { method: 'POST', headers: hdr(), body: JSON.stringify({ key: k }) })
-      .then(function (r) { return r.json(); })
-      .then(show)
-      .catch(function (e) { show('خطأ: ' + e.message); });
-  }
+<script>
+var DAY=864e5;
+var $=function(id){return document.getElementById(id);};
+var KEYS={};
+
+function toast(msg,type){var t=$('toast');t.textContent=msg;t.className='show '+(type||'');setTimeout(function(){t.className='';},2600);}
+function base(){return $('url').value.trim().replace(/\/+$/,'');}
+function hdr(){return {'Content-Type':'application/json','x-admin-token':$('tok').value};}
+function save(){try{localStorage.vg_url=$('url').value;localStorage.vg_tok=$('tok').value;}catch(e){}}
+
+try{$('url').value=localStorage.vg_url||'https://voicegate-server.vercel.app';$('tok').value=localStorage.vg_tok||'';}catch(e){}
+
+function setStatus(on){
+  $('dot').className='dot '+(on?'on':'off');
+  $('statusTxt').textContent=on?'السيرفر متصل':'فشل الاتصال';
+}
+
+function connect(){
+  save();
+  fetch(base()+'/api/admin/list',{headers:hdr()})
+    .then(function(r){ if(r.status===401){throw new Error('UNAUTH');} return r.json(); })
+    .then(function(j){
+      if(!j.ok) throw new Error(j.error||'ERR');
+      setStatus(true);
+      ['cards','createPanel','keysPanel'].forEach(function(id){$(id).hidden=false;});
+      KEYS=j.keys||{}; render();
+      toast('اتصلنا بالسيرفر ✓','ok');
+    })
+    .catch(function(e){
+      setStatus(false);
+      toast(e.message==='UNAUTH'?'كلمة السر غلط':'مش عارف أوصل للسيرفر. اتأكد من الرابط.','err');
+    });
+}
+
+function loadKeys(){
+  fetch(base()+'/api/admin/list',{headers:hdr()})
+    .then(function(r){return r.json();})
+    .then(function(j){ if(j.ok){KEYS=j.keys||{};setStatus(true);render();} })
+    .catch(function(){setStatus(false);});
+}
+
+function expiryOf(r){
+  if(r.plan==='lifetime'||!r.activatedAt) return null;
+  var days=parseInt(r.plan,10)||0; return r.activatedAt+days*DAY;
+}
+function statusOf(r){
+  if(r.revoked) return 'revoked';
+  var exp=expiryOf(r); if(exp && Date.now()>=exp) return 'expired';
+  if(r.deviceId) return 'active';
+  return 'new';
+}
+function fmt(ms){ if(!ms) return '—'; var d=new Date(ms);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+function render(){
+  var arr=Object.keys(KEYS).map(function(k){return Object.assign({key:k},KEYS[k]);});
+  // stats
+  var active=0,devices=0,unused=0,revoked=0,soon=0;
+  arr.forEach(function(r){
+    var s=statusOf(r);
+    if(s==='revoked'){revoked++;return;}
+    if(r.deviceId){active++;devices++;}
+    if(s==='new') unused++;
+    var exp=expiryOf(r); if(exp){var dl=(exp-Date.now())/DAY; if(dl>0&&dl<=7) soon++;}
+  });
+  $('st-active').textContent=active; $('st-devices').textContent=devices;
+  $('st-total').textContent=arr.length; $('st-unused').textContent=unused+' لسه متفعّلش';
+  $('st-soon').textContent=soon; $('st-revoked').textContent=revoked;
+
+  // filter + search
+  var q=$('search').value.trim().toLowerCase(), f=$('filter').value;
+  arr=arr.filter(function(r){
+    if(f!=='all' && statusOf(r)!==f) return false;
+    if(!q) return true;
+    return (r.note||'').toLowerCase().indexOf(q)>=0 || r.key.toLowerCase().indexOf(q)>=0 || (r.deviceName||'').toLowerCase().indexOf(q)>=0;
+  });
+  // sort: active first, then new, then revoked; recent first
+  var order={active:0,new:1,expired:2,revoked:3};
+  arr.sort(function(a,b){return (order[statusOf(a)]-order[statusOf(b)]) || ((b.activatedAt||0)-(a.activatedAt||0));});
+
+  var tb=$('rows');
+  if(!arr.length){tb.innerHTML='<tr><td colspan="9" class="empty">مفيش كيهات مطابقة.</td></tr>';return;}
+  tb.innerHTML=arr.map(function(r,i){
+    var s=statusOf(r);
+    var pill = s==='active'?'<span class="pill p-active">● نشط</span>'
+             : s==='new'?'<span class="pill p-new">جديد</span>'
+             : s==='expired'?'<span class="pill p-expired">منتهي</span>'
+             : '<span class="pill p-revoked">مسحوب</span>';
+    var planTxt = r.plan==='lifetime'?'مدى الحياة':(r.plan+' يوم');
+    var exp=expiryOf(r);
+    var dev = r.deviceId ? ('<div class="dev">🖥️ '+(r.deviceName||r.deviceId.slice(0,10))+' <span style="color:var(--green)">(1)</span></div>') : '<span style="color:var(--mut2)">0 — مفيش</span>';
+    var actRevoke = r.revoked
+        ? '<button class="sm soft" onclick="unrevoke(\''+r.key+'\')">إلغاء السحب</button>'
+        : '<button class="sm danger" onclick="revoke(\''+r.key+'\')">اقفل الكي</button>';
+    var actUnbind = r.deviceId ? '<button class="sm soft" onclick="unbind(\''+r.key+'\')">فك الجهاز</button>' : '';
+    return '<tr>'
+      +'<td>'+(i+1)+'</td>'
+      +'<td>'+(r.note?escapeHtml(r.note):'<span style="color:var(--mut2)">—</span>')+'</td>'
+      +'<td><div class="keycell"><span>'+r.key+'</span><span class="copy" title="نسخ" onclick="copyKey(\''+r.key+'\')">⧉</span></div></td>'
+      +'<td><span class="plan">'+planTxt+'</span></td>'
+      +'<td>'+dev+'</td>'
+      +'<td>'+fmt(r.activatedAt)+'</td>'
+      +'<td>'+(r.plan==='lifetime'?'∞':(exp?fmt(exp):'—'))+'</td>'
+      +'<td>'+pill+'</td>'
+      +'<td><div class="acts">'+actRevoke+actUnbind+'</div></td>'
+      +'</tr>';
+  }).join('');
+}
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+function copyKey(k){ (navigator.clipboard?navigator.clipboard.writeText(k):Promise.reject()).then(function(){toast('اتنسخ: '+k,'ok');},function(){toast(k);}); }
+
+function makeKeys(){
+  var body={plan:$('plan').value,count:parseInt($('count').value,10)||1,note:$('note').value.trim()};
+  $('madeBox').textContent='ثواني...';
+  fetch(base()+'/api/admin/newkey',{method:'POST',headers:hdr(),body:JSON.stringify(body)})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(!j.ok){$('madeBox').textContent='خطأ: '+j.error;return;}
+      $('madeBox').textContent='الكيهات الجديدة (انسخها وابعتها للعميل):\n\n'+j.keys.join('\n');
+      $('note').value='';
+      toast('اتعمل '+j.keys.length+' كي ✓','ok'); loadKeys();
+    })
+    .catch(function(){$('madeBox').textContent='مش عارف أوصل للسيرفر.';});
+}
+
+function act(path,key,okMsg){
+  fetch(base()+'/api/admin/'+path,{method:'POST',headers:hdr(),body:JSON.stringify({key:key})})
+    .then(function(r){return r.json();})
+    .then(function(j){ if(j.ok){toast(okMsg,'ok');loadKeys();}else{toast('خطأ: '+j.error,'err');} })
+    .catch(function(){toast('مش عارف أوصل للسيرفر.','err');});
+}
+function revoke(k){ if(confirm('تقفل الكي '+k+' ؟ العميل هيتقفل عند أول مراجعة أونلاين.')) act('revoke',k,'اتقفل الكي 🚫'); }
+function unbind(k){ if(confirm('تفكّ الكي '+k+' من جهازه؟ هيقدر يتفعّل على جهاز جديد.')) act('unbind',k,'اتفكّ من الجهاز'); }
+function unrevoke(k){ /* unbind clears revoked too (per server), re-enabling the key unbound */ if(confirm('ترجّع تفعّل الكي '+k+' ؟ هيتحرّر لجهاز جديد.')) act('unbind',k,'اترجّع شغّال'); }
+
+// auto-connect if we have creds
+if($('tok').value) connect();
+// light auto-refresh every 60s when connected
+setInterval(function(){ if(!$('keysPanel').hidden) loadKeys(); },60000);
 </script>
 </body>
 </html>
