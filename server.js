@@ -77,6 +77,15 @@ function handleValidate(body, cb) {
     if (rec.revoked) return cb({ ok: false, error: 'REVOKED' });
     var now = Date.now();
 
+    // devices allowed on this key (backward-compatible with the old single-device format)
+    var devices = rec.devices;
+    if (!devices) {
+      devices = {};
+      if (rec.deviceId) devices[rec.deviceId] = { name: rec.deviceName || '', at: rec.activatedAt || now };
+    }
+    // how many devices this key allows: 0 = unlimited, undefined = legacy 1
+    var limit = (rec.maxDevices === undefined || rec.maxDevices === null) ? 1 : rec.maxDevices;
+
     function issue() {
       var exp = null;
       if (rec.plan !== 'lifetime') {
@@ -89,16 +98,17 @@ function handleValidate(body, cb) {
       cb({ ok: true, token: sign(payload) });
     }
 
-    if (!rec.deviceId) {
-      rec.deviceId = deviceId;
-      rec.deviceName = String(body.deviceName || '').slice(0, 120);
-      rec.activatedAt = now;
-      store.putKey(key, rec).then(issue, function () { cb({ ok: false, error: 'RATE' }); });
-    } else if (rec.deviceId !== deviceId) {
-      cb({ ok: false, error: 'DEVICE_LIMIT' });
-    } else {
-      issue();
-    }
+    if (devices[deviceId]) return issue();                 // this device already allowed
+
+    var count = Object.keys(devices).length;
+    if (limit !== 0 && count >= limit) return cb({ ok: false, error: 'DEVICE_LIMIT' });
+
+    // register this new device
+    devices[deviceId] = { name: String(body.deviceName || '').slice(0, 120), at: now };
+    rec.devices = devices;
+    if (!rec.activatedAt) rec.activatedAt = now;
+    if (!rec.deviceId) { rec.deviceId = deviceId; rec.deviceName = String(body.deviceName || '').slice(0, 120); }
+    store.putKey(key, rec).then(issue, function () { cb({ ok: false, error: 'RATE' }); });
   }, function () { cb({ ok: false, error: 'RATE' }); });   // store blip -> clients fall back to offline token
 }
 
@@ -115,8 +125,18 @@ function handleAdmin(url, body, cb) {
     return store.getKey(k).then(function (rec) {
       if (!rec) return cb({ ok: false, error: 'BAD_KEY' });
       if (url === '/api/admin/revoke') rec.revoked = true;
-      else { rec.deviceId = null; rec.deviceName = null; rec.activatedAt = null; rec.revoked = false; }
+      else { rec.deviceId = null; rec.deviceName = null; rec.activatedAt = null; rec.revoked = false; rec.devices = {}; }
       store.putKey(k, rec).then(function () { cb({ ok: true, key: k }); }, function () { cb({ ok: false, error: 'STORE' }); });
+    }, function () { cb({ ok: false, error: 'STORE' }); });
+  }
+  if (url === '/api/admin/setlimit') {
+    var kl = String(body.key || '').trim().toUpperCase();
+    if (!kl) return cb({ ok: false, error: 'NO_KEY' });
+    var md = Math.max(0, parseInt(body.maxDevices, 10) || 0);   // 0 = unlimited
+    return store.getKey(kl).then(function (rec) {
+      if (!rec) return cb({ ok: false, error: 'BAD_KEY' });
+      rec.maxDevices = md;
+      store.putKey(kl, rec).then(function () { cb({ ok: true, key: kl, maxDevices: md }); }, function () { cb({ ok: false, error: 'STORE' }); });
     }, function () { cb({ ok: false, error: 'STORE' }); });
   }
   if (url === '/api/admin/newkey') {
@@ -125,13 +145,14 @@ function handleAdmin(url, body, cb) {
     if (plan !== 'lifetime' && plan === '0') return cb({ ok: false, error: 'BAD_PLAN' });
     var note = String(body.note || '').slice(0, 120);
     var count = Math.min(100, Math.max(1, parseInt(body.count, 10) || 1));
+    var maxDevices = (body.maxDevices === undefined) ? 1 : Math.max(0, parseInt(body.maxDevices, 10) || 0); // 0 = unlimited
     var made = [];
     (function one(i) {
       if (i >= count) return cb({ ok: true, keys: made, plan: plan });
       var k = newKey();
       store.getKey(k).then(function (exists) {
         if (exists) return one(i);
-        var rec = { plan: plan, deviceId: null, deviceName: null, activatedAt: null, revoked: false, note: note };
+        var rec = { plan: plan, deviceId: null, deviceName: null, activatedAt: null, revoked: false, note: note, maxDevices: maxDevices, devices: {} };
         store.putKey(k, rec).then(function () { made.push(k); one(i + 1); }, function () { cb({ ok: false, error: 'STORE' }); });
       }, function () { cb({ ok: false, error: 'STORE' }); });
     })(0);

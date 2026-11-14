@@ -141,7 +141,17 @@
           <option value="365">سنة</option>
         </select>
       </div>
-      <div><label>العدد</label><input id="count" type="number" value="1" min="1" max="100" style="width:90px"></div>
+      <div><label>العدد</label><input id="count" type="number" value="1" min="1" max="100" style="width:80px"></div>
+      <div><label>عدد الأجهزة</label>
+        <select id="maxdev">
+          <option value="1">جهاز واحد</option>
+          <option value="2">2 أجهزة</option>
+          <option value="3">3 أجهزة</option>
+          <option value="5">5 أجهزة</option>
+          <option value="10">10 أجهزة</option>
+          <option value="0">بدون حد ∞</option>
+        </select>
+      </div>
       <div class="grow"><label>اسم / إيميل العميل</label><input id="note" placeholder="مثلاً: khaled — محل الصوتيات"></div>
       <div style="align-self:end"><button onclick="makeKeys()">اعمل الكيهات</button></div>
     </div>
@@ -223,10 +233,19 @@ function expiryOf(r){
   if(r.plan==='lifetime'||!r.activatedAt) return null;
   var days=parseInt(r.plan,10)||0; return r.activatedAt+days*DAY;
 }
+function devMap(r){
+  if(r.devices && typeof r.devices==='object') return r.devices;
+  if(r.deviceId){var m={};m[r.deviceId]={name:r.deviceName,at:r.activatedAt};return m;}
+  return {};
+}
+function devCount(r){ return Object.keys(devMap(r)).length; }
+function devNames(r){ var m=devMap(r); return Object.keys(m).map(function(id){return m[id].name||id.slice(0,8);}); }
+function maxDev(r){ return (r.maxDevices===undefined||r.maxDevices===null)?1:r.maxDevices; } // 0 = unlimited
+function maxTxt(r){ var m=maxDev(r); return m===0?'∞':m; }
 function statusOf(r){
   if(r.revoked) return 'revoked';
   var exp=expiryOf(r); if(exp && Date.now()>=exp) return 'expired';
-  if(r.deviceId) return 'active';
+  if(devCount(r)>0) return 'active';
   return 'new';
 }
 function fmt(ms){ if(!ms) return '—'; var d=new Date(ms);
@@ -239,7 +258,7 @@ function render(){
   arr.forEach(function(r){
     var s=statusOf(r);
     if(s==='revoked'){revoked++;return;}
-    if(r.deviceId){active++;devices++;}
+    var dc=devCount(r); if(dc>0){active++;devices+=dc;}
     if(s==='new') unused++;
     var exp=expiryOf(r); if(exp){var dl=(exp-Date.now())/DAY; if(dl>0&&dl<=7) soon++;}
   });
@@ -268,11 +287,15 @@ function render(){
              : '<span class="pill p-revoked">مسحوب</span>';
     var planTxt = r.plan==='lifetime'?'مدى الحياة':(r.plan+' يوم');
     var exp=expiryOf(r);
-    var dev = r.deviceId ? ('<div class="dev">🖥️ '+(r.deviceName||r.deviceId.slice(0,10))+' <span style="color:var(--green)">(1)</span></div>') : '<span style="color:var(--mut2)">0 — مفيش</span>';
+    var dc=devCount(r), mx=maxTxt(r), names=devNames(r);
+    var dev = dc>0
+      ? '<div class="dev" title="'+escapeHtml(names.join(', '))+'">🖥️ <b style="color:var(--green)">'+dc+'</b> / '+mx+' <span style="color:var(--mut2)">('+escapeHtml(names.slice(0,2).join('، '))+(names.length>2?'…':'')+')</span></div>'
+      : '<span style="color:var(--mut2)">0 / '+mx+'</span>';
     var actRevoke = r.revoked
         ? '<button class="sm soft" onclick="unrevoke(\''+r.key+'\')">إلغاء السحب</button>'
         : '<button class="sm danger" onclick="revoke(\''+r.key+'\')">اقفل الكي</button>';
-    var actUnbind = r.deviceId ? '<button class="sm soft" onclick="unbind(\''+r.key+'\')">فك الجهاز</button>' : '';
+    var actLimit = '<button class="sm soft" onclick="setLimit(\''+r.key+'\','+maxDev(r)+')">الحد: '+mx+'</button>';
+    var actUnbind = dc>0 ? '<button class="sm soft" onclick="unbind(\''+r.key+'\')">فك الأجهزة</button>' : '';
     return '<tr>'
       +'<td>'+(i+1)+'</td>'
       +'<td>'+(r.note?escapeHtml(r.note):'<span style="color:var(--mut2)">—</span>')+'</td>'
@@ -282,7 +305,7 @@ function render(){
       +'<td>'+fmt(r.activatedAt)+'</td>'
       +'<td>'+(r.plan==='lifetime'?'∞':(exp?fmt(exp):'—'))+'</td>'
       +'<td>'+pill+'</td>'
-      +'<td><div class="acts">'+actRevoke+actUnbind+'</div></td>'
+      +'<td><div class="acts">'+actRevoke+actLimit+actUnbind+'</div></td>'
       +'</tr>';
   }).join('');
 }
@@ -291,7 +314,7 @@ function escapeHtml(s){return String(s).replace(/[&<>"]/g,function(c){return{'&'
 function copyKey(k){ (navigator.clipboard?navigator.clipboard.writeText(k):Promise.reject()).then(function(){toast('اتنسخ: '+k,'ok');},function(){toast(k);}); }
 
 function makeKeys(){
-  var body={plan:$('plan').value,count:parseInt($('count').value,10)||1,note:$('note').value.trim()};
+  var body={plan:$('plan').value,count:parseInt($('count').value,10)||1,note:$('note').value.trim(),maxDevices:parseInt($('maxdev').value,10)};
   $('madeBox').textContent='ثواني...';
   fetch(base()+'/api/admin/newkey',{method:'POST',headers:hdr(),body:JSON.stringify(body)})
     .then(function(r){return r.json();})
@@ -308,6 +331,15 @@ function act(path,key,okMsg){
   fetch(base()+'/api/admin/'+path,{method:'POST',headers:hdr(),body:JSON.stringify({key:key})})
     .then(function(r){return r.json();})
     .then(function(j){ if(j.ok){toast(okMsg,'ok');loadKeys();}else{toast('خطأ: '+j.error,'err');} })
+    .catch(function(){toast('مش عارف أوصل للسيرفر.','err');});
+}
+function setLimit(k,cur){
+  var v=prompt('عدد الأجهزة المسموحة للكي '+k+'؟\n(اكتب رقم، أو 0 / سيبها فاضية = بدون حد)', cur===0?'':cur);
+  if(v===null) return;
+  var n=(v.trim()==='')?0:(parseInt(v,10)||0);
+  fetch(base()+'/api/admin/setlimit',{method:'POST',headers:hdr(),body:JSON.stringify({key:k,maxDevices:n})})
+    .then(function(r){return r.json();})
+    .then(function(j){ if(j.ok){toast('اتغيّر الحد لـ '+(n===0?'بدون حد ∞':n+' جهاز'),'ok');loadKeys();}else{toast('خطأ: '+j.error,'err');} })
     .catch(function(){toast('مش عارف أوصل للسيرفر.','err');});
 }
 function revoke(k){ if(confirm('تقفل الكي '+k+' ؟ العميل هيتقفل عند أول مراجعة أونلاين.')) act('revoke',k,'اتقفل الكي 🚫'); }
